@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BeBeach Wastage Consolidator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --cream: #EAE6DC; --cream-dark: #D8D3C6; --gold: #8B7540; --gold-light: #A8915A;
+  --gold-pale: #C9B98A; --ink: #2C2720; --ink-mid: #5A5248; --ink-light: #8A8178;
+  --surface: #F3EFE6; --border: rgba(139,117,64,0.25); --border-strong: rgba(139,117,64,0.5);
+  --danger: #8B4040;
+}
+html, body { background: var(--cream); color: var(--ink); font-family: 'Jost', sans-serif; font-weight: 300; min-height: 100vh; }
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; }
+#pin-screen { min-height: 100vh; align-items: center; justify-content: center; padding: 2rem 1rem; }
+.pin-wrap { display: flex; flex-direction: column; align-items: center; gap: 1.75rem; width: 100%; max-width: 320px; }
+.brand-sub { font-size: 10px; font-weight: 400; letter-spacing: 0.25em; color: var(--ink-light); text-transform: uppercase; margin-top: 4px; }
+.pin-divider { width: 40px; height: 1px; background: var(--border-strong); }
+.pin-label { font-size: 11px; font-weight: 400; letter-spacing: 0.2em; color: var(--ink-light); text-transform: uppercase; }
+.pin-dots { display: flex; gap: 14px; }
+.pin-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--gold); background: transparent; transition: background 0.2s, transform 0.15s; }
+.pin-dot.filled { background: var(--gold); transform: scale(1.15); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+.pin-btn { height: 56px; border: 1px solid var(--border-strong); border-radius: 2px; background: transparent; color: var(--ink); font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 400; cursor: pointer; transition: background 0.15s; letter-spacing: 0.05em; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+.pin-btn:hover { background: var(--cream-dark); }
+.pin-btn:active { background: var(--gold-pale); transform: scale(0.97); }
+.pin-btn.small { font-family: 'Jost', sans-serif; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-light); }
+.pin-error { font-size: 11px; letter-spacing: 0.1em; color: var(--danger); min-height: 16px; text-align: center; }
+.app-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+.header-divider { width: 1px; height: 36px; background: var(--border-strong); flex-shrink: 0; }
+.header-text { flex: 1; }
+.header-text h1 { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 500; color: var(--gold); letter-spacing: 0.08em; line-height: 1.2; }
+.header-text p { font-size: 10px; font-weight: 400; letter-spacing: 0.18em; color: var(--ink-light); text-transform: uppercase; margin-top: 3px; }
+.header-admin-btn { height: 32px; padding: 0 14px; border: 1px solid var(--border-strong); border-radius: 2px; background: transparent; color: var(--ink-light); font-family: 'Jost', sans-serif; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; flex-shrink: 0; touch-action: manipulation; }
+.header-admin-btn:hover { background: var(--cream-dark); }
+.app-body { padding: 1.75rem 1.5rem; max-width: 680px; width: 100%; margin: 0 auto; }
+.field-label { font-size: 10px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 8px; display: block; }
+.main-textarea { width: 100%; min-height: 200px; padding: 14px 16px; border: 1px solid var(--border-strong); border-radius: 2px; background: var(--surface); color: var(--ink); font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 300; line-height: 1.7; resize: vertical; outline: none; transition: border-color 0.2s; }
+.main-textarea:focus { border-color: var(--gold); }
+.main-textarea::placeholder { color: var(--ink-light); opacity: 0.7; }
+.extra-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.extra-row textarea { flex: 1; min-height: 80px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 2px; background: var(--surface); color: var(--ink); font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 300; line-height: 1.6; resize: vertical; outline: none; }
+.remove-btn { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 2px; background: transparent; color: var(--ink-light); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; margin-top: 2px; touch-action: manipulation; }
+.remove-btn:hover { border-color: var(--danger); color: var(--danger); }
+.actions { display: flex; gap: 10px; margin-top: 1.25rem; }
+.btn-add { flex: 1; height: 44px; border: 1px dashed var(--border-strong); border-radius: 2px; background: transparent; color: var(--ink-light); font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 400; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; touch-action: manipulation; }
+.btn-add:hover { background: var(--cream-dark); }
+.btn-process { flex: 2; height: 44px; border: 1px solid var(--gold); border-radius: 2px; background: var(--gold); color: var(--cream); font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; touch-action: manipulation; }
+.btn-process:hover { opacity: 0.85; }
+.status-bar { margin-top: 14px; font-size: 11px; letter-spacing: 0.1em; color: var(--ink-light); min-height: 18px; }
+/* REVIEW */
+#review-screen { min-height: 100vh; }
+.review-body { padding: 1.75rem 1.5rem; max-width: 680px; width: 100%; margin: 0 auto; }
+.review-progress { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 1.25rem; }
+.review-card { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 2px; padding: 1.5rem; }
+.review-item-name { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+.review-item-context { font-size: 11px; color: var(--ink-light); letter-spacing: 0.08em; margin-bottom: 1.5rem; }
+.review-section-label { font-size: 9px; font-weight: 500; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
+.review-categories { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.5rem; }
+.review-cat-btn { height: 36px; padding: 0 16px; border: 1px solid var(--border-strong); border-radius: 2px; background: transparent; color: var(--ink); font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 0.1em; cursor: pointer; transition: all 0.15s; touch-action: manipulation; white-space: nowrap; }
+.review-cat-btn:hover { background: var(--cream-dark); }
+.review-cat-btn.selected { background: var(--gold); color: var(--cream); border-color: var(--gold); }
+.review-cat-btn.new-cat { border-style: dashed; color: var(--ink-light); }
+.review-units { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.5rem; }
+.review-unit-btn { height: 36px; padding: 0 16px; border: 1px solid var(--border-strong); border-radius: 2px; background: transparent; color: var(--ink); font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 0.1em; cursor: pointer; transition: all 0.15s; touch-action: manipulation; }
+.review-unit-btn:hover { background: var(--cream-dark); }
+.review-unit-btn.selected { background: var(--gold); color: var(--cream); border-color: var(--gold); }
+.review-actions { display: flex; gap: 10px; margin-top: 1rem; }
+.btn-ignore { flex: 1; height: 44px; border: 1px solid var(--border-strong); border-radius: 2px; background: transparent; color: var(--ink-light); font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; touch-action: manipulation; }
+.btn-ignore:hover { background: var(--cream-dark); }
+.btn-add-item { flex: 2; height: 44px; border: 1px solid var(--gold); border-radius: 2px; background: var(--gold); color: var(--cream); font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; touch-action: manipulation; }
+.btn-add-item:hover { opacity: 0.85; }
+.btn-add-item:disabled { opacity: 0.35; cursor: not-allowed; }
+.new-cat-input { width: 100%; padding: 10px 14px; border: 1px solid var(--gold); border-radius: 2px; background: var(--surface); color: var(--ink); font-family: 'Jost', sans-serif; font-size: 13px; outline: none; margin-bottom: 1rem; }
+/* RESULT */
+.result-card { margin-top: 1.5rem; border: 1px solid var(--border-strong); border-radius: 2px; background: var(--surface); overflow: hidden; }
+.result-header { background: var(--gold); padding: 1rem 1.25rem; display: flex; align-items: baseline; justify-content: space-between; }
+.result-header-title { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 500; color: var(--cream); letter-spacing: 0.08em; }
+.result-date-badge { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 400; letter-spacing: 0.18em; color: var(--gold-pale); text-transform: uppercase; }
+.result-body { padding: 1.25rem; }
+.result-section { margin-bottom: 1.25rem; }
+.result-section:last-child { margin-bottom: 0; }
+.result-section-title { font-size: 9px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.result-item { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid rgba(139,117,64,0.1); }
+.result-item:last-child { border-bottom: none; }
+.item-name { font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 300; color: var(--ink); }
+.item-qty { font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 500; color: var(--ink); letter-spacing: 0.04em; }
+.item-unit { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 300; color: var(--ink-light); letter-spacing: 0.08em; margin-left: 5px; }
+.result-actions { display: flex; gap: 10px; padding: 1rem 1.25rem; border-top: 1px solid var(--border); background: var(--cream); }
+.btn-copy { flex: 1; height: 40px; border: 1px solid var(--gold); border-radius: 2px; background: transparent; color: var(--gold); font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; touch-action: manipulation; }
+.btn-copy:hover { background: rgba(139,117,64,0.08); }
+.btn-reset { height: 40px; padding: 0 18px; border: 1px solid var(--border-strong); border-radius: 2px; background: transparent; color: var(--ink-light); font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; touch-action: manipulation; }
+.btn-reset:hover { background: var(--cream-dark); }
+.copied-msg { font-size: 10px; letter-spacing: 0.15em; color: #5A7A5A; text-transform: uppercase; min-height: 14px; padding: 0 1.25rem 0.75rem; text-align: center; background: var(--cream); }
+/* ADMIN */
+#admin-screen { min-height: 100vh; }
+.admin-body { padding: 1.75rem 1.5rem; max-width: 680px; width: 100%; margin: 0 auto; }
+.admin-section { margin-bottom: 2rem; }
+.admin-section-title { font-size: 9px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.learned-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(139,117,64,0.1); }
+.learned-item:last-child { border-bottom: none; }
+.learned-name { flex: 1; font-size: 13px; color: var(--ink); }
+.learned-meta { font-size: 11px; color: var(--ink-light); letter-spacing: 0.08em; margin-right: 8px; }
+.learned-edit-btn { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: 2px; background: transparent; color: var(--ink-light); font-size: 10px; letter-spacing: 0.1em; cursor: pointer; touch-action: manipulation; }
+.learned-edit-btn:hover { background: var(--cream-dark); }
+.learned-del-btn { height: 28px; width: 28px; border: 1px solid var(--border); border-radius: 2px; background: transparent; color: var(--ink-light); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
+.learned-del-btn:hover { border-color: var(--danger); color: var(--danger); }
+.empty-state { font-size: 13px; color: var(--ink-light); font-style: italic; padding: 1rem 0; }
+.btn-back { height: 40px; padding: 0 20px; border: 1px solid var(--border-strong); border-radius: 2px; background: transparent; color: var(--ink-light); font-family: 'Jost', sans-serif; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; touch-action: manipulation; }
+.btn-back:hover { background: var(--cream-dark); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(44,39,32,0.5); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 100; }
+.modal-box { background: var(--cream); border: 1px solid var(--border-strong); border-radius: 2px; padding: 1.5rem; width: 100%; max-width: 360px; }
+.modal-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 500; color: var(--ink); margin-bottom: 1.25rem; }
+.modal-label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 6px; display: block; }
+.modal-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border-strong); border-radius: 2px; background: var(--surface); color: var(--ink); font-family: 'Jost', sans-serif; font-size: 13px; outline: none; margin-bottom: 1rem; }
+.modal-select { width: 100%; padding: 10px 14px; border: 1px solid var(--border-strong); border-radius: 2px; background: var(--surface); color: var(--ink); font-family: 'Jost', sans-serif; font-size: 13px; outline: none; margin-bottom: 1rem; appearance: none; }
+.modal-actions { display: flex; gap: 10px; }
+.btn-modal-cancel { flex: 1; height: 40px; border: 1px solid var(--border-strong); border-radius: 2px; background: transparent; color: var(--ink-light); font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; touch-action: manipulation; }
+.btn-modal-save { flex: 2; height: 40px; border: none; border-radius: 2px; background: var(--gold); color: var(--cream); font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; touch-action: manipulation; }
+@media (max-width: 420px) {
+  .app-header { padding: 1rem; }
+  .app-body, .review-body, .admin-body { padding: 1.25rem 1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div id="pin-screen" class="screen active">
+  <div class="pin-wrap">
+    <div style="text-align:center;">
+      <svg viewBox="0 0 320 100" xmlns="http://www.w3.org/2000/svg" style="width:180px;height:auto;display:block;margin:0 auto;">
+        <text x="160" y="55" font-family="Georgia,serif" font-size="48" font-weight="400" fill="#8B7540" text-anchor="middle" letter-spacing="6">BE BEACH</text>
+        <text x="160" y="80" font-family="Georgia,serif" font-size="16" font-weight="400" fill="#8B7540" text-anchor="middle" letter-spacing="10">DUBAI</text>
+      </svg>
+      <p class="brand-sub">by Addmind</p>
+    </div>
+    <div class="pin-divider"></div>
+    <p class="pin-label">Enter PIN</p>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn small" onclick="pinClear()">clear</button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn small" onclick="pinDelete()">&#9003;</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main-screen" class="screen">
+  <div class="app-header">
+    <svg viewBox="0 0 200 56" xmlns="http://www.w3.org/2000/svg" style="width:90px;height:auto;flex-shrink:0;">
+      <text x="100" y="28" font-family="Georgia,serif" font-size="22" font-weight="400" fill="#8B7540" text-anchor="middle" letter-spacing="3">BE BEACH</text>
+      <text x="100" y="46" font-family="Georgia,serif" font-size="9" font-weight="400" fill="#8B7540" text-anchor="middle" letter-spacing="6">DUBAI</text>
+    </svg>
+    <div class="header-divider"></div>
+    <div class="header-text">
+      <h1>Wastage Consolidator</h1>
+      <p>Be Beach Dubai &middot; by Addmind</p>
+    </div>
+    <button class="header-admin-btn" onclick="showAdmin()">Library</button>
+  </div>
+  <div class="app-body">
+    <label class="field-label">All bar messages</label>
+    <textarea class="main-textarea" id="main-input" placeholder="Paste all WhatsApp messages here — as many bars as needed, all at once..."></textarea>
+    <div id="extra-label-wrap"></div>
+    <div id="extra-list"></div>
+    <div class="actions">
+      <button class="btn-add" onclick="addExtra()">+ Add missing bar</button>
+      <button class="btn-process" onclick="processMessages()">Process</button>
+    </div>
+    <div class="status-bar" id="status-bar"></div>
+    <div id="result-area"></div>
+  </div>
+</div>
+
+<!-- REVIEW -->
+<div id="review-screen" class="screen">
+  <div class="app-header">
+    <svg viewBox="0 0 200 56" xmlns="http://www.w3.org/2000/svg" style="width:90px;height:auto;flex-shrink:0;">
+      <text x="100" y="28" font-family="Georgia,serif" font-size="22" font-weight="400" fill="#8B7540" text-anchor="middle" letter-spacing="3">BE BEACH</text>
+      <text x="100" y="46" font-family="Georgia,serif" font-size="9" font-weight="400" fill="#8B7540" text-anchor="middle" letter-spacing="6">DUBAI</text>
+    </svg>
+    <div class="header-divider"></div>
+    <div class="header-text"><h1>Unknown Items</h1><p>Review &amp; classify each item</p></div>
+  </div>
+  <div class="review-body">
+    <div class="review-progress" id="review-progress"></div>
+    <div class="review-card" id="review-card"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin-screen" class="screen">
+  <div class="app-header">
+    <svg viewBox="0 0 200 56" xmlns="http://www.w3.org/2000/svg" style="width:90px;height:auto;flex-shrink:0;">
+      <text x="100" y="28" font-family="Georgia,serif" font-size="22" font-weight="400" fill="#8B7540" text-anchor="middle" letter-spacing="3">BE BEACH</text>
+      <text x="100" y="46" font-family="Georgia,serif" font-size="9" font-weight="400" fill="#8B7540" text-anchor="middle" letter-spacing="6">DUBAI</text>
+    </svg>
+    <div class="header-divider"></div>
+    <div class="header-text"><h1>Item Library</h1><p>Learned items &middot; edit or remove</p></div>
+  </div>
+  <div class="admin-body">
+    <div id="admin-content"></div>
+    <button class="btn-back" onclick="showMain()" style="margin-top:1rem;">&#8592; Back</button>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title">Edit item</div>
+    <label class="modal-label">Item name</label>
+    <input class="modal-input" id="modal-name" type="text" />
+    <label class="modal-label">Category</label>
+    <select class="modal-select" id="modal-cat"></select>
+    <label class="modal-label">Unit</label>
+    <select class="modal-select" id="modal-unit">
+      <option value="cans">cans</option>
+      <option value="bottles">bottles</option>
+      <option value="L">L (litres)</option>
+      <option value="kg">kg</option>
+      <option value="pcs">pcs</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-modal-save" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────
+const CORRECT_PIN = '2580';
+const STORAGE_KEY = 'bb_learned_items';
+const CATS_KEY    = 'bb_categories';
+
+const DEFAULT_CATS = [
+  { id:'soft_drinks', label:'Soft Drinks & Beverages', units:['cans','bottles','L'] },
+  { id:'produce',     label:'Fruits & Vegetables',     units:['kg','pcs'] },
+  { id:'draft_beer',  label:'Draft Beer',               units:['L'] }
+];
+
+// ── BUILT-IN ITEM DICTIONARY ───────────────────────────────
+// key: lowercase match string, value: { category, unit, displayName }
+const BUILTIN = {
+  // Soft drinks - cans
+  'pepsi':{'category':'soft_drinks','unit':'cans','displayName':'Pepsi'},
+  'diet pepsi':{'category':'soft_drinks','unit':'cans','displayName':'Diet Pepsi'},
+  '7up':{'category':'soft_drinks','unit':'cans','displayName':'7Up'},
+  'diet 7up':{'category':'soft_drinks','unit':'cans','displayName':'Diet 7Up'},
+  '7up diet':{'category':'soft_drinks','unit':'cans','displayName':'Diet 7Up'},
+  'soda':{'category':'soft_drinks','unit':'cans','displayName':'Soda'},
+  'soda water':{'category':'soft_drinks','unit':'cans','displayName':'Soda Water'},
+  'tonic':{'category':'soft_drinks','unit':'cans','displayName':'Tonic'},
+  'tonic water':{'category':'soft_drinks','unit':'cans','displayName':'Tonic Water'},
+  'redbull':{'category':'soft_drinks','unit':'cans','displayName':'Red Bull'},
+  'red bull':{'category':'soft_drinks','unit':'cans','displayName':'Red Bull'},
+  'redbull sugarfree':{'category':'soft_drinks','unit':'cans','displayName':'Red Bull Sugarfree'},
+  'redbull sugar free':{'category':'soft_drinks','unit':'cans','displayName':'Red Bull Sugarfree'},
+  'ginger ale':{'category':'soft_drinks','unit':'cans','displayName':'Ginger Ale'},
+  'cola':{'category':'soft_drinks','unit':'cans','displayName':'Cola'},
+  'mango juice':{'category':'soft_drinks','unit':'cans','displayName':'Mango Juice'},
+  'pink grapefruit':{'category':'soft_drinks','unit':'cans','displayName':'Pink Grapefruit Soda'},
+  'pink grapefruit soda':{'category':'soft_drinks','unit':'cans','displayName':'Pink Grapefruit Soda'},
+  'watermelon soda':{'category':'soft_drinks','unit':'cans','displayName':'Watermelon Soda'},
+  'water melon soda':{'category':'soft_drinks','unit':'cans','displayName':'Watermelon Soda'},
+  'water melon':{'category':'soft_drinks','unit':'cans','displayName':'Watermelon Soda'},
+  // Soft drinks - bottles
+  'mediterranean tonic':{'category':'soft_drinks','unit':'bottles','displayName':'Mediterranean Tonic'},
+  'medit tonic':{'category':'soft_drinks','unit':'bottles','displayName':'Mediterranean Tonic'},
+  'med. tonic':{'category':'soft_drinks','unit':'bottles','displayName':'Mediterranean Tonic'},
+  'med tonic':{'category':'soft_drinks','unit':'bottles','displayName':'Mediterranean Tonic'},
+  'elderflower tonic':{'category':'soft_drinks','unit':'bottles','displayName':'Elderflower Tonic'},
+  'elderflower soda':{'category':'soft_drinks','unit':'bottles','displayName':'Elderflower Soda'},
+  'pink soda':{'category':'soft_drinks','unit':'bottles','displayName':'Pink Soda'},
+  // Soft drinks - litres (milk)
+  'full fat milk':{'category':'soft_drinks','unit':'L','displayName':'Full Fat Milk'},
+  'full fat':{'category':'soft_drinks','unit':'L','displayName':'Full Fat Milk'},
+  'low fat milk':{'category':'soft_drinks','unit':'L','displayName':'Low Fat Milk'},
+  'low fat':{'category':'soft_drinks','unit':'L','displayName':'Low Fat Milk'},
+  // Juices - litres (in soft_drinks)
+  'lime juice':{'category':'soft_drinks','unit':'L','displayName':'Lime Juice'},
+  'lemon juice':{'category':'soft_drinks','unit':'L','displayName':'Lemon Juice'},
+  'orange juice':{'category':'soft_drinks','unit':'L','displayName':'Orange Juice'},
+  'grapefruit juice':{'category':'soft_drinks','unit':'L','displayName':'Grapefruit Juice'},
+  'green apple juice':{'category':'soft_drinks','unit':'L','displayName':'Green Apple Juice'},
+  'fresh apple juice':{'category':'soft_drinks','unit':'L','displayName':'Fresh Apple Juice'},
+  'apple juice':{'category':'soft_drinks','unit':'L','displayName':'Apple Juice'},
+  'cranberry juice':{'category':'soft_drinks','unit':'L','displayName':'Cranberry Juice'},
+  'pineapple juice':{'category':'soft_drinks','unit':'L','displayName':'Pineapple Juice'},
+  'strawberry puree':{'category':'soft_drinks','unit':'L','displayName':'Strawberry Puree'},
+  'passion fruit puree':{'category':'soft_drinks','unit':'L','displayName':'Passion Fruit Puree'},
+  // Produce - kg
+  'lime':{'category':'produce','unit':'kg','displayName':'Lime'},
+  'lime fruit':{'category':'produce','unit':'kg','displayName':'Lime'},
+  'lemon':{'category':'produce','unit':'kg','displayName':'Lemon'},
+  'lemon fruit':{'category':'produce','unit':'kg','displayName':'Lemon'},
+  'orange':{'category':'produce','unit':'kg','displayName':'Orange'},
+  'orange fruit':{'category':'produce','unit':'kg','displayName':'Orange'},
+  'grapefruit':{'category':'produce','unit':'kg','displayName':'Grapefruit'},
+  'passion fruit':{'category':'produce','unit':'kg','displayName':'Passion Fruit'},
+  'watermelon':{'category':'produce','unit':'kg','displayName':'Watermelon'},
+  'water melon fruit':{'category':'produce','unit':'kg','displayName':'Watermelon'},
+  'strawberry':{'category':'produce','unit':'kg','displayName':'Strawberry'},
+  'straberry':{'category':'produce','unit':'kg','displayName':'Strawberry'},
+  'strawberries':{'category':'produce','unit':'kg','displayName':'Strawberry'},
+  'apple':{'category':'produce','unit':'kg','displayName':'Apple'},
+  'cucumber':{'category':'produce','unit':'kg','displayName':'Cucumber'},
+  'jalapeno':{'category':'produce','unit':'kg','displayName':'Jalapeño'},
+  'jalapeño':{'category':'produce','unit':'kg','displayName':'Jalapeño'},
+  'alapenio':{'category':'produce','unit':'kg','displayName':'Jalapeño'},
+  'baby corn':{'category':'produce','unit':'kg','displayName':'Baby Corn'},
+  'popcorn leaves':{'category':'produce','unit':'kg','displayName':'Popcorn Leaves'},
+  'mint':{'category':'produce','unit':'kg','displayName':'Mint'},
+  'rosemary':{'category':'produce','unit':'kg','displayName':'Rosemary'},
+  'basil':{'category':'produce','unit':'kg','displayName':'Basil'},
+  // Draft beer - litres
+  'heineken':{'category':'draft_beer','unit':'L','displayName':'Heineken'},
+  'birra moretti':{'category':'draft_beer','unit':'L','displayName':'Birra Moretti'},
+  'moretti':{'category':'draft_beer','unit':'L','displayName':'Birra Moretti'},
+};
+
+// Spelling correction map (typo -> correct key in BUILTIN or learned)
+const TYPO_MAP = {
+  'straberry':'strawberry','strawberries':'strawberry',
+  'alapenio':'jalapeño','jalapeno':'jalapeño',
+  'watermelon':'watermelon','water melon':'watermelon',
+  'grapfruit':'grapefruit','grapfruit juice':'grapefruit juice',
+  'lemmon':'lemon','lemon fruit':'lemon','lime fruit':'lime',
+  'orange fruit':'orange','passion fruit':'passion fruit',
+  'tonic water':'tonic water','soda water':'soda water',
+  'med. tonic':'mediterranean tonic','medit tonic':'mediterranean tonic','med tonic':'mediterranean tonic',
+  'redbull sugar free':'redbull sugarfree','red bull sugar free':'redbull sugarfree',
+  'full fat':'full fat milk','low fat':'low fat milk',
+  'fresh apple juice':'fresh apple juice','green apple juice':'green apple juice',
+};
+
+// ── STORAGE ────────────────────────────────────────────────
+function getLearnedItems() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); } catch(e) { return {}; }
+}
+function saveLearnedItems(obj) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); } catch(e) {} 
+}
+function getCategories() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CATS_KEY)||'[]');
+    const ids = DEFAULT_CATS.map(c=>c.id);
+    return [...DEFAULT_CATS, ...saved.filter(c=>!ids.includes(c.id))];
+  } catch(e) { return DEFAULT_CATS; }
+}
+function saveCustomCategory(label) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CATS_KEY)||'[]');
+    const id = label.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+    if (!saved.find(c=>c.id===id)) {
+      saved.push({id, label, units:['cans','bottles','L','kg','pcs']});
+      localStorage.setItem(CATS_KEY, JSON.stringify(saved));
+    }
+    return id;
+  } catch(e) { return label; }
+}
+
+// ── PIN ────────────────────────────────────────────────────
+let pinBuffer = '';
+function pinPress(d) {
+  if (pinBuffer.length>=4) return;
+  pinBuffer+=d; updateDots();
+  if (pinBuffer.length===4) setTimeout(checkPin,150);
+}
+function pinDelete() { pinBuffer=pinBuffer.slice(0,-1); updateDots(); }
+function pinClear()  { pinBuffer=''; updateDots(); }
+function updateDots() {
+  for(let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled',i<pinBuffer.length);
+}
+function checkPin() {
+  if (pinBuffer===CORRECT_PIN) { showScreen('main-screen'); }
+  else {
+    document.getElementById('pin-error').textContent='Incorrect PIN. Please try again.';
+    pinBuffer=''; updateDots();
+    setTimeout(()=>{ document.getElementById('pin-error').textContent=''; },2000);
+  }
+}
+
+// ── SCREEN NAV ─────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function showMain()  { showScreen('main-screen'); }
+function showAdmin() { renderAdmin(); showScreen('admin-screen'); }
+
+// ── EXTRA BARS ─────────────────────────────────────────────
+let extraCount=0;
+function addExtra() {
+  extraCount++;
+  const id='extra-'+extraCount;
+  const wrap=document.getElementById('extra-label-wrap');
+  if (!wrap.hasChildNodes()) wrap.innerHTML='<label class="field-label" style="margin-top:1rem;display:block;">Additional messages</label>';
+  const list=document.getElementById('extra-list');
+  const div=document.createElement('div');
+  div.className='extra-row'; div.id=id;
+  div.innerHTML=`<textarea placeholder="Paste additional bar message here..."></textarea>
+    <button class="remove-btn" onclick="removeExtra('${id}')">&#215;</button>`;
+  list.appendChild(div);
+}
+function removeExtra(id) {
+  const el=document.getElementById(id); if(el) el.remove();
+  if (!document.getElementById('extra-list').children.length)
+    document.getElementById('extra-label-wrap').innerHTML='';
+}
+
+// ── PARSER ─────────────────────────────────────────────────
+function parseQtyUnit(raw) {
+  // Normalise unit variants
+  const s = raw.trim()
+    .replace(/\blts?\b/gi,'L').replace(/\bltrs?\b/gi,'L')
+    .replace(/\blitres?\b/gi,'L').replace(/\bliters?\b/gi,'L')
+    .replace(/\bmls?\b/gi,'ml').replace(/\bkgs?\b/gi,'kg')
+    .replace(/\bgrams?\b/gi,'g').replace(/\bgr\b/gi,'g')
+    .replace(/\bpcs\b/gi,'pcs').replace(/\bpieces?\b/gi,'pcs');
+
+  // Patterns: "1.5 L", "600ml", "1L", "200g", "0.2"
+  const m = s.match(/^([\d.]+)\s*(L|ml|kg|g|pcs|cans?|bottles?)?$/i);
+  if (!m) return null;
+  let qty = parseFloat(m[1]);
+  let unit = (m[2]||'').toLowerCase();
+
+  if (unit==='ml') { qty=qty/1000; unit='L'; }
+  if (unit==='g')  { qty=qty/1000; unit='kg'; }
+  if (unit==='can'||unit==='cans') unit='cans';
+  if (unit==='bottle'||unit==='bottles') unit='bottles';
+
+  return { qty, unit: unit||null };
+}
+
+function lookupItem(name) {
+  const learned = getLearnedItems();
+  const key = name.toLowerCase().trim();
+  // 1. Check learned items
+  if (learned[key]) return learned[key];
+  // 2. Apply typo map
+  const corrected = TYPO_MAP[key];
+  if (corrected && BUILTIN[corrected]) return BUILTIN[corrected];
+  if (corrected && learned[corrected]) return learned[corrected];
+  // 3. Check built-in
+  if (BUILTIN[key]) return BUILTIN[key];
+  // 4. Fuzzy: check if any builtin key is contained in name or vice versa
+  for (const bkey of Object.keys(BUILTIN)) {
+    if (key.includes(bkey) || bkey.includes(key)) return BUILTIN[bkey];
+  }
+  for (const lkey of Object.keys(learned)) {
+    if (key.includes(lkey) || lkey.includes(key)) return learned[lkey];
+  }
+  return null;
+}
+
+function parseMessages(text) {
+  const lines = text.split('\n');
+  const result = { soft_drinks:{}, produce:{}, draft_beer:{}, custom:{} };
+  const unknown = [];
+  let date = null;
+
+  // Detect date from WhatsApp timestamp or message body
+  for (const line of lines) {
+    const dm = line.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\b/);
+    if (dm) {
+      let y = dm[3]; if (y.length===2) y='20'+y;
+      date = dm[1].padStart(2,'0')+'/'+dm[2].padStart(2,'0')+'/'+y;
+      break;
+    }
+  }
+  if (!date) date = new Date().toLocaleDateString('en-GB');
+
+  // Process lines
+  for (let i=0; i<lines.length; i++) {
+    const raw = lines[i].trim();
+    if (!raw) continue;
+
+    // Skip WhatsApp metadata lines
+    if (raw.match(/^\[\d{1,2}\/\d{1,2}\/\d{2,4}/)) continue;
+    if (raw.match(/^~\s/) || raw.match(/^From\s/i)) continue;
+    // Skip section headers (no numbers)
+    if (raw.match(/^(juices?|fruits?|soft\s*drinks?|draft\s*beer|beverages?|vegetables?|produce|herbs?)$/i)) continue;
+
+    // Try to parse "name quantity unit" or "name: quantity unit" or "name - quantity unit"
+    const m = raw.match(/^(.+?)[\s:\-]+(\d[\d.]*\s*(?:L|ml|kg|g|lt|ltr|litres?|liters?|lts?|pcs|pieces?|cans?|bottles?)?)$/i);
+    if (!m) continue;
+
+    const namePart = m[1].trim();
+    const qtyPart  = m[2].trim();
+    const parsed   = parseQtyUnit(qtyPart);
+    if (!parsed) continue;
+
+    const itemMeta = lookupItem(namePart);
+
+    if (itemMeta) {
+      // Use known unit unless parse gave a specific one
+      const unit = (parsed.unit && parsed.unit!=='') ? parsed.unit : itemMeta.unit;
+      const cat  = itemMeta.category;
+      const displayName = itemMeta.displayName || namePart;
+      const key  = displayName.toLowerCase();
+
+      if (cat==='soft_drinks') {
+        if (!result.soft_drinks[key]) result.soft_drinks[key]={name:displayName,qty:0,unit};
+        result.soft_drinks[key].qty += parsed.qty;
+      } else if (cat==='produce') {
+        if (!result.produce[key]) result.produce[key]={name:displayName,qty:0,unit};
+        result.produce[key].qty += parsed.qty;
+      } else if (cat==='draft_beer') {
+        if (!result.draft_beer[key]) result.draft_beer[key]={name:displayName,qty:0,unit};
+        result.draft_beer[key].qty += parsed.qty;
+      } else {
+        if (!result.custom[cat]) result.custom[cat]={};
+        if (!result.custom[cat][key]) result.custom[cat][key]={name:displayName,qty:0,unit};
+        result.custom[cat][key].qty += parsed.qty;
+      }
+    } else {
+      // Unknown item
+      const unit = parsed.unit || '';
+      unknown.push({ name:namePart, quantity:parsed.qty, unit, raw });
+    }
+  }
+
+  return { date, result, unknown };
+}
+
+// ── STATE ──────────────────────────────────────────────────
+let pendingUnknowns=[], pendingIndex=0, processedResult=null, processedDate=null;
+let reviewSelectedCat=null, reviewSelectedUnit=null, reviewShowNewCat=false;
+let editingKey=null;
+
+// ── PROCESS ────────────────────────────────────────────────
+function processMessages() {
+  const main = document.getElementById('main-input').value.trim();
+  const extras = Array.from(document.querySelectorAll('#extra-list textarea')).map(t=>t.value.trim()).filter(Boolean);
+  const allParts = [main,...extras].filter(Boolean);
+  if (!allParts.length) { document.getElementById('status-bar').textContent='Please paste at least one message.'; return; }
+
+  const combined = allParts.join('\n\n');
+  const { date, result, unknown } = parseMessages(combined);
+
+  document.getElementById('result-area').innerHTML='';
+  document.getElementById('status-bar').textContent='';
+  processedResult = result;
+  processedDate   = date;
+
+  if (unknown.length>0) {
+    pendingUnknowns = unknown;
+    pendingIndex    = 0;
+    showReviewScreen();
+  } else {
+    renderResult(result, date);
+  }
+}
+
+// ── REVIEW ─────────────────────────────────────────────────
+function showReviewScreen() { showScreen('review-screen'); renderReviewCard(); }
+
+function renderReviewCard() {
+  const item  = pendingUnknowns[pendingIndex];
+  const total = pendingUnknowns.length;
+  const cats  = getCategories();
+
+  document.getElementById('review-progress').textContent =
+    'Item '+(pendingIndex+1)+' of '+total+' — review unknown items';
+
+  reviewSelectedCat=null; reviewSelectedUnit=null; reviewShowNewCat=false;
+
+  const catBtns = cats.map(c=>
+    `<button class="review-cat-btn" id="rcat-${c.id}" onclick="selectReviewCat('${c.id}')">${c.label}</button>`
+  ).join('')+'<button class="review-cat-btn new-cat" onclick="toggleNewCat()">+ New category</button>';
+
+  document.getElementById('review-card').innerHTML=`
+    <div class="review-item-name">${item.name}</div>
+    <div class="review-item-context">Found as: "${item.raw}" &nbsp;·&nbsp; qty: ${item.quantity} ${item.unit}</div>
+    <div class="review-section-label">Select category</div>
+    <div class="review-categories">${catBtns}</div>
+    <div id="new-cat-wrap" style="display:none;">
+      <input class="new-cat-input" id="new-cat-name" type="text" placeholder="New category name..." />
+    </div>
+    <div id="unit-section" style="display:none;">
+      <div class="review-section-label">Select unit</div>
+      <div class="review-units" id="review-units"></div>
+    </div>
+    <div class="review-actions">
+      <button class="btn-ignore" onclick="ignoreItem()">Ignore</button>
+      <button class="btn-add-item" id="btn-add-item" onclick="confirmItem()" disabled>Add to report</button>
+    </div>`;
+}
+
+function selectReviewCat(catId) {
+  reviewSelectedCat=catId; reviewSelectedUnit=null; reviewShowNewCat=false;
+  document.getElementById('new-cat-wrap').style.display='none';
+  document.querySelectorAll('.review-cat-btn').forEach(b=>b.classList.remove('selected'));
+  const btn=document.getElementById('rcat-'+catId); if(btn) btn.classList.add('selected');
+  const cats=getCategories();
+  const cat=cats.find(c=>c.id===catId);
+  const units=cat?cat.units:['cans','bottles','L','kg','pcs'];
+  document.getElementById('unit-section').style.display='block';
+  document.getElementById('review-units').innerHTML=units.map(u=>
+    `<button class="review-unit-btn" id="runit-${u}" onclick="selectReviewUnit('${u}')">${u}</button>`
+  ).join('');
+  document.getElementById('btn-add-item').disabled=true;
+}
+
+function selectReviewUnit(unit) {
+  reviewSelectedUnit=unit;
+  document.querySelectorAll('.review-unit-btn').forEach(b=>b.classList.remove('selected'));
+  const btn=document.getElementById('runit-'+unit); if(btn) btn.classList.add('selected');
+  document.getElementById('btn-add-item').disabled=!(reviewSelectedCat&&reviewSelectedUnit);
+}
+
+function toggleNewCat() {
+  reviewShowNewCat=!reviewShowNewCat;
+  document.getElementById('new-cat-wrap').style.display=reviewShowNewCat?'block':'none';
+  if (reviewShowNewCat) {
+    document.querySelectorAll('.review-cat-btn').forEach(b=>b.classList.remove('selected'));
+    reviewSelectedCat=null;
+    document.getElementById('unit-section').style.display='block';
+    document.getElementById('review-units').innerHTML=['cans','bottles','L','kg','pcs'].map(u=>
+      `<button class="review-unit-btn" id="runit-${u}" onclick="selectReviewUnit('${u}')">${u}</button>`
+    ).join('');
+    document.getElementById('btn-add-item').disabled=true;
+    setTimeout(()=>document.getElementById('new-cat-name').focus(),50);
+  }
+}
+
+function confirmItem() {
+  const item=pendingUnknowns[pendingIndex];
+  let catId=reviewSelectedCat;
+
+  if (reviewShowNewCat) {
+    const newName=(document.getElementById('new-cat-name').value||'').trim();
+    if (!newName) { alert('Please enter a category name.'); return; }
+    catId=saveCustomCategory(newName);
+  }
+  if (!catId||!reviewSelectedUnit) return;
+
+  // Save to learned items
+  const learned=getLearnedItems();
+  learned[item.name.toLowerCase()]={category:catId, unit:reviewSelectedUnit, displayName:item.name};
+  saveLearnedItems(learned);
+
+  // Add to result
+  const key=item.name.toLowerCase();
+  const entry={name:item.name, qty:item.quantity, unit:reviewSelectedUnit};
+  if (catId==='soft_drinks') {
+    if (!processedResult.soft_drinks[key]) processedResult.soft_drinks[key]={...entry};
+    else processedResult.soft_drinks[key].qty+=item.quantity;
+  } else if (catId==='produce') {
+    if (!processedResult.produce[key]) processedResult.produce[key]={...entry};
+    else processedResult.produce[key].qty+=item.quantity;
+  } else if (catId==='draft_beer') {
+    if (!processedResult.draft_beer[key]) processedResult.draft_beer[key]={...entry};
+    else processedResult.draft_beer[key].qty+=item.quantity;
+  } else {
+    if (!processedResult.custom[catId]) processedResult.custom[catId]={};
+    if (!processedResult.custom[catId][key]) processedResult.custom[catId][key]={...entry};
+    else processedResult.custom[catId][key].qty+=item.quantity;
+  }
+  nextItem();
+}
+
+function ignoreItem() { nextItem(); }
+
+function nextItem() {
+  pendingIndex++;
+  if (pendingIndex>=pendingUnknowns.length) { showMain(); renderResult(processedResult, processedDate); }
+  else renderReviewCard();
+}
+
+// ── RENDER RESULT ──────────────────────────────────────────
+function renderResult(result, date) {
+  const area=document.getElementById('result-area');
+  const cats=getCategories();
+
+  function sectionHTML(obj, title) {
+    const items=Object.values(obj);
+    if (!items.length) return '';
+    return `<div class="result-section">
+      <div class="result-section-title">${title}</div>
+      ${items.map(i=>`<div class="result-item">
+        <span class="item-name">${i.name}</span>
+        <span class="item-qty">${fmtQ(i.qty)}<span class="item-unit">${i.unit}</span></span>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  let body=sectionHTML(result.soft_drinks,'Soft Drinks &amp; Beverages');
+  body+=sectionHTML(result.produce,'Fruits &amp; Vegetables');
+  body+=sectionHTML(result.draft_beer,'Draft Beer');
+  if (result.custom) {
+    Object.entries(result.custom).forEach(([catId,obj])=>{
+      const cat=cats.find(c=>c.id===catId);
+      body+=sectionHTML(obj, cat?cat.label:catId);
+    });
+  }
+
+  area.innerHTML=`
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-header-title">Wastage Report</span>
+        <span class="result-date-badge">${date}</span>
+      </div>
+      <div class="result-body">${body}</div>
+      <div class="result-actions">
+        <button class="btn-copy" onclick="copyResult()">Copy Report</button>
+        <button class="btn-reset" onclick="resetAll()">New Date</button>
+      </div>
+      <div class="copied-msg" id="copied-msg"></div>
+    </div>`;
+
+  window._lastResult={result,date};
+}
+
+function fmtQ(n) {
+  if (!n) return '0';
+  const r=Math.round(n*1000)/1000;
+  return r===Math.floor(r)?r.toString():r.toString();
+}
+
+// ── COPY ───────────────────────────────────────────────────
+function copyResult() {
+  const d=window._lastResult; if(!d) return;
+  const cats=getCategories();
+  let txt='WASTAGE REPORT — '+d.date+'\n\n';
+
+  function appendSection(obj,title) {
+    const items=Object.values(obj); if(!items.length) return;
+    txt+=title+'\n';
+    items.forEach(i=>{ txt+=i.name+': '+fmtQ(i.qty)+' '+i.unit+'\n'; });
+    txt+='\n';
+  }
+  appendSection(d.result.soft_drinks,'SOFT DRINKS & BEVERAGES');
+  appendSection(d.result.produce,'FRUITS & VEGETABLES');
+  appendSection(d.result.draft_beer,'DRAFT BEER');
+  if (d.result.custom) {
+    Object.entries(d.result.custom).forEach(([catId,obj])=>{
+      const cat=cats.find(c=>c.id===catId);
+      appendSection(obj,(cat?cat.label:catId).toUpperCase());
+    });
+  }
+
+  const el=document.getElementById('copied-msg');
+  if (navigator.clipboard&&navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(()=>{ el.textContent='Report copied to clipboard'; setTimeout(()=>{ el.textContent=''; },2500); }).catch(()=>fallbackCopy(txt,el));
+  } else fallbackCopy(txt,el);
+}
+
+function fallbackCopy(txt,el) {
+  const ta=document.createElement('textarea');
+  ta.value=txt; ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px;';
+  document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0,99999);
+  let ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+  if(el){ el.textContent=ok?'Report copied to clipboard':'Copy failed — please copy manually'; setTimeout(()=>{ el.textContent=''; },3000); }
+}
+
+function resetAll() {
+  document.getElementById('main-input').value='';
+  document.getElementById('extra-list').innerHTML='';
+  document.getElementById('extra-label-wrap').innerHTML='';
+  document.getElementById('result-area').innerHTML='';
+  document.getElementById('status-bar').textContent='';
+  extraCount=0; processedResult=null; processedDate=null;
+}
+
+// ── ADMIN ──────────────────────────────────────────────────
+function renderAdmin() {
+  const learned=getLearnedItems();
+  const cats=getCategories();
+  const entries=Object.entries(learned);
+  let html='';
+  if (!entries.length) {
+    html='<div class="admin-section"><div class="admin-section-title">Learned Items</div><p class="empty-state">No learned items yet. Items you classify will appear here.</p></div>';
+  } else {
+    const byCat={};
+    entries.forEach(([key,meta])=>{ if(!byCat[meta.category]) byCat[meta.category]=[]; byCat[meta.category].push({key,...meta}); });
+    Object.entries(byCat).forEach(([catId,items])=>{
+      const cat=cats.find(c=>c.id===catId);
+      html+=`<div class="admin-section"><div class="admin-section-title">${cat?cat.label:catId}</div>`;
+      items.forEach(item=>{
+        html+=`<div class="learned-item">
+          <span class="learned-name">${item.displayName||item.key}</span>
+          <span class="learned-meta">${item.unit}</span>
+          <button class="learned-edit-btn" onclick="openEditModal('${item.key}')">Edit</button>
+          <button class="learned-del-btn" onclick="deleteLearnedItem('${item.key}')">&#215;</button>
+        </div>`;
+      });
+      html+='</div>';
+    });
+  }
+  document.getElementById('admin-content').innerHTML=html;
+}
+
+function deleteLearnedItem(key) {
+  const learned=getLearnedItems(); delete learned[key]; saveLearnedItems(learned); renderAdmin();
+}
+
+function openEditModal(key) {
+  editingKey=key;
+  const learned=getLearnedItems(); const item=learned[key]; if(!item) return;
+  const cats=getCategories();
+  document.getElementById('modal-name').value=item.displayName||key;
+  document.getElementById('modal-cat').innerHTML=cats.map(c=>`<option value="${c.id}"${c.id===item.category?' selected':''}>${c.label}</option>`).join('');
+  document.getElementById('modal-unit').value=item.unit;
+  document.getElementById('edit-modal').style.display='flex';
+}
+
+function closeModal() { document.getElementById('edit-modal').style.display='none'; editingKey=null; }
+
+function saveModal() {
+  if (!editingKey) return;
+  const learned=getLearnedItems();
+  const newName=document.getElementById('modal-name').value.trim();
+  const newCat=document.getElementById('modal-cat').value;
+  const newUnit=document.getElementById('modal-unit').value;
+  if (!newName) return;
+  delete learned[editingKey];
+  learned[newName.toLowerCase()]={category:newCat, unit:newUnit, displayName:newName};
+  saveLearnedItems(learned); closeModal(); renderAdmin();
+}
+</script>
+</body>
+</html>
